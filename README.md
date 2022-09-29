@@ -1,2 +1,2 @@
 # ws22
-Code for my modules in winter term 22/23.
+Code für meine Module im Wintersemester 22/23.

@@ -1,25 +1,13 @@
 #include <stdio.h>
-int main()
-{       
-    char weiter;
-    do
-    {
-        float startkapital;
-        
-        printf("\nDein Startkapital: ");
-        scanf("%f", &startkapital);
 
-        float zielkapital;
-        printf("Dein Zielkapital: ");
-        scanf("%f", &zielkapital);
 
-        float zinsrate;
-        printf("Dein Zinssatz: ");
-        scanf("%f", &zinsrate);
 
+void berechne_kapital_entwicklung(  float startkapital,
+                                    float zielkapital,
+                                    float zinsrate )
+{
         int jahr;
-        jahr = 0; 
-
+        jahr = 0;
         float kapital;
         kapital = startkapital;
         while (kapital<zielkapital)
@@ -28,15 +16,34 @@ int main()
             jahr = jahr + 1;
             printf("\nNach %d Jahr hast du: %f", jahr, kapital);
         }
+}
+
+int main()
+{       
+    char weiter;
+    do
+    {            
+        float startkapital;
+        float zielkapital;
+        float zinsrate;
+
+        printf("\nDein Startkapital: ");
+        scanf("%f", &startkapital);
+      
+        printf("Dein Zielkapital: ");
+        scanf("%f", &zielkapital);
+      
+        printf("Dein Zinssatz: ");
+        scanf("%f", &zinsrate);
+
+        berechne_kapital_entwicklung(startkapital, zielkapital, zinsrate);
 
         printf("\nWillst du eine weitere Kapitalverzinsung"
-            "berechnen? (j/n)");
-       
+            "berechnen? (j/n)");       
         
         scanf(" %c", &weiter);
         printf("Du hast folgendes Zeichen eingegeben: %c", weiter);
-
-            
+           
 
     } while (weiter=='j');
 

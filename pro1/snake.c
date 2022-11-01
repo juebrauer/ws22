@@ -15,6 +15,7 @@ int kbhit(void)
   tcgetattr(STDIN_FILENO, &oldt);
   newt = oldt;
   newt.c_lflag &= ~(ICANON | ECHO);
+  //newt.c_lflag &= ~(ICANON);
   tcsetattr(STDIN_FILENO, TCSANOW, &newt);
   oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
   fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
@@ -31,6 +32,21 @@ int kbhit(void)
   }
 
   return 0;
+}
+
+
+void EchoEnable(int EchoOn)
+{
+    struct termios TermConf;
+
+    tcgetattr(STDIN_FILENO, &TermConf);
+
+    if(EchoOn)
+       TermConf.c_lflag |= (ICANON | ECHO);
+    else
+       TermConf.c_lflag &= ~(ICANON | ECHO);
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &TermConf);
 }
 
 
@@ -55,12 +71,15 @@ int kbhit(void)
 #define cursor_show() printf("\e[?25h")
 
 
-
 char spielfeld[HOEHE][BREITE];
 
 // Startposition der Schlange: Spielfeldmitte
 int sx = BREITE/2;
 int sy = HOEHE/2;
+
+// Wie oft wurde das Spielfeld schon neu gezeichnet?
+unsigned long long update = 0;
+
 
 void spielfeld_aufbauen_begrenzungsrahmen()
 {
@@ -171,8 +190,10 @@ void spielfeld_aufbauen()
 
 
 void spielfeld_zeichnen()
-{
-    char ganzes_spielfeld_als_str[HOEHE*(BREITE+1)];
+{    
+    update += 1;
+
+    char ganzes_spielfeld_als_str[HOEHE*(BREITE+3)];
 
     // Für alle Zeilen ...
     int i = 0;
@@ -186,13 +207,30 @@ void spielfeld_zeichnen()
             i = i + 1;
         }
         //printf("\n");
-        ganzes_spielfeld_als_str[i] = '\n';
-        i = i + 1;
+        ganzes_spielfeld_als_str[i]   = ' ';
+        ganzes_spielfeld_als_str[i+1] = ' ';
+        ganzes_spielfeld_als_str[i+2] = '\n';
+        i = i + 3;
     }
     
-    printf("%s", ganzes_spielfeld_als_str);
+    printf("%s\n", ganzes_spielfeld_als_str);
+    printf("Update: %lld\n", update);
+    printf("Schlangen-Position: (%d,%d)", sx, sy);
+    
     
 } // spielfeld_zeichnen
+
+
+void bewege_schlange(char taste)
+{
+    switch (taste)
+    {
+        case 'w' : if (sy>1)        sy-=1; break;
+        case 's' : if (sy<HOEHE-2)  sy+=1; break;
+        case 'a' : if (sx>1)        sx-=1; break;
+        case 'd' : if (sx<BREITE-2) sx+=1; break;
+    }
+}
 
 
 
@@ -207,21 +245,33 @@ int main()
 
     spielfeld_aufbauen();
     spielfeld[sy][sx] = ITEM_SCHLANGE_KOPF;
+    
 
     clear();
     cursor_hide();
+    EchoEnable(0);
 
     char benutzer_eingabe;
     
+    // Spielablaufschleife    
     do
-    {
-        gotoxy(0,0);
+    {        
+        gotoxy(0,0);        
         spielfeld_zeichnen();
 
         if (kbhit())
         {
+            gotoxy(0, HOEHE+1);
             benutzer_eingabe = getchar();
-            break;
+
+            // Wenn der Benutzer die ESC-Taste drückt,
+            // springen wir aus der Spielablaufschleife
+            if (benutzer_eingabe == 27)
+                break;            
+            
+            spielfeld[sy][sx] = ITEM_LEER;
+            bewege_schlange( benutzer_eingabe );
+            spielfeld[sy][sx] = ITEM_SCHLANGE_KOPF;
         }
 
         // Benutzereingabe zur Schlangensteuerung

@@ -1,6 +1,7 @@
 #include <stdio.h> // printf()
 #include <stdlib.h> // rand()
 #include <time.h>   // time()
+#include <errno.h>
 
 #include <termios.h>
 #include <unistd.h>
@@ -50,7 +51,37 @@ void EchoEnable(int EchoOn)
 }
 
 
+
+
+int msleep(long tms)
+{
+    struct timespec ts;
+    int ret;
+
+    if (tms < 0)
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
+    ts.tv_sec = tms / 1000;
+    ts.tv_nsec = (tms % 1000) * 1000000;
+
+    nanosleep(&ts, &ts);
+
+    /*
+    do {
+        ret = nanosleep(&ts, &ts);
+    } while (ret && errno == EINTR);
+    */
+    return ret;
+}
+
+
 // Spielparameter
+
+#define GAME_SPEED 200
+
 #define HOEHE 30
 #define BREITE 40
 
@@ -76,6 +107,10 @@ char spielfeld[HOEHE][BREITE];
 // Startposition der Schlange: Spielfeldmitte
 int sx = BREITE/2;
 int sy = HOEHE/2;
+
+// Startlaufrichtung der Schlange: nach rechts
+int dx = +1;
+int dy = 0;
 
 // Wie oft wurde das Spielfeld schon neu gezeichnet?
 unsigned long long update = 0;
@@ -193,7 +228,7 @@ void spielfeld_zeichnen()
 {    
     update += 1;
 
-    char ganzes_spielfeld_als_str[HOEHE*(BREITE+3)];
+    char ganzes_spielfeld_als_str[HOEHE*(BREITE+1)];
 
     // Für alle Zeilen ...
     int i = 0;
@@ -207,28 +242,27 @@ void spielfeld_zeichnen()
             i = i + 1;
         }
         //printf("\n");
-        ganzes_spielfeld_als_str[i]   = ' ';
-        ganzes_spielfeld_als_str[i+1] = ' ';
-        ganzes_spielfeld_als_str[i+2] = '\n';
-        i = i + 3;
+        ganzes_spielfeld_als_str[i] = '\n';
+        i = i + 1;
     }
     
+    gotoxy(0,0);
     printf("%s\n", ganzes_spielfeld_als_str);
     printf("Update: %lld\n", update);
-    printf("Schlangen-Position: (%d,%d)", sx, sy);
+    printf("Schlangen-Position: (%d,%d) ", sx, sy);
     
     
 } // spielfeld_zeichnen
 
 
-void bewege_schlange(char taste)
+void aendere_schlangen_laufrichtung(char taste)
 {
     switch (taste)
     {
-        case 'w' : if (sy>1)        sy-=1; break;
-        case 's' : if (sy<HOEHE-2)  sy+=1; break;
-        case 'a' : if (sx>1)        sx-=1; break;
-        case 'd' : if (sx<BREITE-2) sx+=1; break;
+        case 'w' : dy=-1; dx=0;  break;
+        case 's' : dy=+1; dx=0;  break;
+        case 'a' : dy=0;  dx=-1; break;
+        case 'd' : dy=0;  dx=+1; break;
     }
 }
 
@@ -249,36 +283,66 @@ int main()
 
     clear();
     cursor_hide();
+
+    // Ausschalten der Anzeige der Benutzereingaben
     EchoEnable(0);
 
-    char benutzer_eingabe;
+    char taste;
     
     // Spielablaufschleife    
     do
-    {        
-        gotoxy(0,0);        
-        spielfeld_zeichnen();
+    {  
+        // Schlange bewegen
 
+         // Lösche alte Schlangenposition im Spielfeld
+        spielfeld[sy][sx] = ITEM_LEER;
+
+        // Rechne neue Schlangenkopfposition aus
+        sx += dx;
+        sy += dy;       
+
+        // Schlange in Wand gelaufen?
+        if (spielfeld[sy][sx] == ITEM_WAND)
+        {
+            // Schlangenkopf läuft in Wand! Game Over!
+            game_over = 1;
+
+        }
+
+        // Trage aktuelle Schlangenposition in Spielfeld ein
+        spielfeld[sy][sx] = ITEM_SCHLANGE_KOPF;
+
+        // Hat der Benutzer eine Taste gedrückt?
         if (kbhit())
         {
-            gotoxy(0, HOEHE+1);
-            benutzer_eingabe = getchar();
+            // Ja!
+            //gotoxy(0, HOEHE+1);
+            taste = getchar();
 
             // Wenn der Benutzer die ESC-Taste drückt,
             // springen wir aus der Spielablaufschleife
-            if (benutzer_eingabe == 27)
+            if (taste == 27)
                 break;            
             
-            spielfeld[sy][sx] = ITEM_LEER;
-            bewege_schlange( benutzer_eingabe );
-            spielfeld[sy][sx] = ITEM_SCHLANGE_KOPF;
+            aendere_schlangen_laufrichtung(taste);            
         }
+              
+        spielfeld_zeichnen();
 
-        // Benutzereingabe zur Schlangensteuerung
+        msleep( GAME_SPEED );
 
     } while (game_over == 0);
 
-    printf("Benutzer hat folgende Taste gedrückt: %c\n", benutzer_eingabe);
+    if (game_over==1)
+    {
+        gotoxy(0,0);
+        printf("GAME OVER!");
+    }
+
+    //printf("Benutzer hat folgende Taste gedrückt: %c\n", benutzer_eingabe);
+
+    // Einschalten der Anzeige der Benutzereingaben
+    EchoEnable(1);
 
     cursor_show();
 

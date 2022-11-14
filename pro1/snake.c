@@ -80,7 +80,9 @@ int msleep(long tms)
 
 // Spielparameter
 
-#define GAME_SPEED 200
+#define GAME_SPEED 300
+
+#define MAX_SCHLANGEN_LAENGE 100
 
 #define HOEHE 30
 #define BREITE 40
@@ -89,8 +91,9 @@ int msleep(long tms)
 #define ITEM_LEER ' '
 #define ITEM_FUTTER 'x'
 #define ITEM_SCHLANGE_KOPF '@'
+#define ITEM_SCHLANGE_KOERPER 'o'
 
-#define STARTFLAECHE_SEITENLAENGE 5
+#define STARTFLAECHE_SEITENLAENGE 7
 #define ANZAHL_START_FUTTERSTUECKE 10
 #define ANZAHL_WAENDE 8
 #define WAENDE_LAENGE 4
@@ -104,13 +107,18 @@ int msleep(long tms)
 
 char spielfeld[HOEHE][BREITE];
 
-// Startposition der Schlange: Spielfeldmitte
-int sx = BREITE/2;
-int sy = HOEHE/2;
-
 // Startlaufrichtung der Schlange: nach rechts
 int dx = +1;
 int dy = 0;
+
+// Schlangenlänge
+int sl = 1;
+
+// Datenstrukturen für die Schlangenkörperteilpositionen
+int sx[MAX_SCHLANGEN_LAENGE];
+int sy[MAX_SCHLANGEN_LAENGE];
+
+
 
 // Wie oft wurde das Spielfeld schon neu gezeichnet?
 unsigned long long update = 0;
@@ -249,7 +257,8 @@ void spielfeld_zeichnen()
     gotoxy(0,0);
     printf("%s\n", ganzes_spielfeld_als_str);
     printf("Update: %lld\n", update);
-    printf("Schlangen-Position: (%d,%d) ", sx, sy);
+    printf("Schlangen-Position: (%d,%d) \n", sx[0], sy[0]);
+    printf("Schlangen-Länge: %d\n", sl);
     
     
 } // spielfeld_zeichnen
@@ -277,8 +286,12 @@ int main()
 
     int game_over = 0;
 
+    // Lasse die Schlange in der Spielfeldmitte starten
+    sy[0] = HOEHE/2;
+    sx[0] = BREITE/2;
+
     spielfeld_aufbauen();
-    spielfeld[sy][sx] = ITEM_SCHLANGE_KOPF;
+    spielfeld[sy[0]][sx[0]] = ITEM_SCHLANGE_KOPF;
     
 
     clear();
@@ -294,24 +307,57 @@ int main()
     {  
         // Schlange bewegen
 
-         // Lösche alte Schlangenposition im Spielfeld
-        spielfeld[sy][sx] = ITEM_LEER;
+         // Lösche letztes Schlangenteil aus dem Spielfeld
+        spielfeld[sy[sl-1]][sx[sl-1]] = ITEM_LEER;
 
         // Rechne neue Schlangenkopfposition aus
-        sx += dx;
-        sy += dy;       
-
+        int new_sx = sx[0] + dx;
+        int new_sy = sy[0] + dy;
+        
         // Schlange in Wand gelaufen?
-        if (spielfeld[sy][sx] == ITEM_WAND)
+        if (spielfeld[new_sy][new_sx] == ITEM_WAND)
         {
             // Schlangenkopf läuft in Wand! Game Over!
             game_over = 1;
-
         }
 
-        // Trage aktuelle Schlangenposition in Spielfeld ein
-        spielfeld[sy][sx] = ITEM_SCHLANGE_KOPF;
+        // Schlange in Futterstückchen gelaufen?
+        if (spielfeld[new_sy][new_sx] == ITEM_FUTTER)
+        {
+            // Poor man's debugging:
+            printf("Jetzt passiert gleich was Schlimmes!\n");
+            // Rücke die Schlangenkörperteile im Array
+            // eine Position nach hinten
+            for (int i=sl; i>=1; i=i-1)
+            {                
+                sx[i] = sx[i-1];
+                sy[i] = sy[i-1];
+            }            
+            // Berechne neue Schlangenlänge
+            sl=sl+1;
+            printf("Kommen wir noch hierhin?\n");
+        }
 
+        // Rücke Körperteile der Schlange nach
+        for (int i=sl-1; i>=1; i=i-1)
+        {
+            sx[i] = sx[i-1];
+            sy[i] = sy[i-1];
+        }
+        // Trage die neue Kopfposition ein
+        sx[0] = new_sx;
+        sy[0] = new_sy;
+
+        // Zeichne die ganze Schlange
+        // in das Spielfeld
+        for (int i=0; i<sl; i=i+1)
+        {
+            char zeichen = ITEM_SCHLANGE_KOERPER;
+            if (i==0)
+                zeichen = ITEM_SCHLANGE_KOPF;
+            spielfeld[sy[i]][sx[i]] = zeichen;
+        }
+        
         // Hat der Benutzer eine Taste gedrückt?
         if (kbhit())
         {
@@ -333,10 +379,11 @@ int main()
 
     } while (game_over == 0);
 
+    gotoxy(0,HOEHE+5);
+
     if (game_over==1)
-    {
-        gotoxy(0,0);
-        printf("GAME OVER!");
+    {        
+        printf("GAME OVER!\n");
     }
 
     //printf("Benutzer hat folgende Taste gedrückt: %c\n", benutzer_eingabe);

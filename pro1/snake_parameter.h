@@ -1,0 +1,23 @@
+// Spielparameter
+#define GAME_SPEED 300
+
+#define MAX_SCHLANGEN_LAENGE 100
+
+#define HOEHE 30
+#define BREITE 40
+
+#define ITEM_WAND '#'
+#define ITEM_LEER ' '
+#define ITEM_FUTTER 'x'
+#define ITEM_SCHLANGE_KOPF '@'
+#define ITEM_SCHLANGE_SCHWANZ 'o'
+
+#define STARTFLAECHE_SEITENLAENGE 7
+#define ANZAHL_START_FUTTERSTUECKE 10
+#define ANZAHL_WAENDE 8
+#define WAENDE_LAENGE 4
+
+#define STARTDIR_X 1
+#define STARTDIR_Y 0
+
+#define INITIAL_SNAKE_LENGTH 4

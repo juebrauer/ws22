@@ -1,118 +1,21 @@
 #include <stdio.h> // printf()
 #include <stdlib.h> // rand()
 #include <time.h>   // time()
-#include <errno.h>
-
-#include <termios.h>
-#include <unistd.h>
-#include <fcntl.h>
-
-int kbhit(void)
-{
-  struct termios oldt, newt;
-  int ch;
-  int oldf;
-
-  tcgetattr(STDIN_FILENO, &oldt);
-  newt = oldt;
-  newt.c_lflag &= ~(ICANON | ECHO);
-  //newt.c_lflag &= ~(ICANON);
-  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-  oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
-  fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
-
-  ch = getchar();
-
-  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-  fcntl(STDIN_FILENO, F_SETFL, oldf);
-
-  if(ch != EOF)
-  {
-    ungetc(ch, stdin);
-    return 1;
-  }
-
-  return 0;
-}
 
 
-void EchoEnable(int EchoOn)
-{
-    struct termios TermConf;
+#include "snake_hilfsfunktionen.h"
+#include "snake_parameter.h"
 
-    tcgetattr(STDIN_FILENO, &TermConf);
-
-    if(EchoOn)
-       TermConf.c_lflag |= (ICANON | ECHO);
-    else
-       TermConf.c_lflag &= ~(ICANON | ECHO);
-
-    tcsetattr(STDIN_FILENO, TCSANOW, &TermConf);
-}
-
-
-
-
-int msleep(long tms)
-{
-    struct timespec ts;
-    int ret;
-
-    if (tms < 0)
-    {
-        errno = EINVAL;
-        return -1;
-    }
-
-    ts.tv_sec = tms / 1000;
-    ts.tv_nsec = (tms % 1000) * 1000000;
-
-    nanosleep(&ts, &ts);
-
-    /*
-    do {
-        ret = nanosleep(&ts, &ts);
-    } while (ret && errno == EINTR);
-    */
-    return ret;
-}
-
-
-// Spielparameter
-
-#define GAME_SPEED 300
-
-#define MAX_SCHLANGEN_LAENGE 100
-
-#define HOEHE 30
-#define BREITE 40
-
-#define ITEM_WAND '#'
-#define ITEM_LEER ' '
-#define ITEM_FUTTER 'x'
-#define ITEM_SCHLANGE_KOPF '@'
-#define ITEM_SCHLANGE_KOERPER 'o'
-
-#define STARTFLAECHE_SEITENLAENGE 7
-#define ANZAHL_START_FUTTERSTUECKE 10
-#define ANZAHL_WAENDE 8
-#define WAENDE_LAENGE 4
-
-#define clear() printf("\033[H\033[J")
-#define gotoxy(x,y) printf("\033[%d;%dH", (y), (x))
-
-#define cursor_hide() printf("\e[?25l")
-#define cursor_show() printf("\e[?25h")
 
 
 char spielfeld[HOEHE][BREITE];
 
 // Startlaufrichtung der Schlange: nach rechts
-int dx = +1;
-int dy = 0;
+int dx = STARTDIR_X;
+int dy = STARTDIR_Y;
 
 // Schlangenlänge
-int sl = 1;
+int sl = INITIAL_SNAKE_LENGTH;
 
 // Datenstrukturen für die Schlangenkörperteilpositionen
 int sx[MAX_SCHLANGEN_LAENGE];
@@ -156,9 +59,9 @@ void spielfeld_aufbauen_hindernisse_vertikal(int anz_linien,
 {
     // Zufällige vertikale Hindernisse einzeichnen
     for (int linien_nr=1; linien_nr<=anz_linien; linien_nr=linien_nr+1)
-    {
-        int startx = 1 + rand() % (BREITE-2);
-        int starty = 1 + rand() % (HOEHE-2-(linien_laenge-1));
+    {                        
+        int startx = zufallszahl(1, BREITE-2);
+        int starty = zufallszahl(1, HOEHE-2-(linien_laenge-1));        
         for (int linien_stueck=0;
              linien_stueck<linien_laenge;
              linien_stueck=linien_stueck+1)
@@ -179,8 +82,8 @@ void spielfeld_aufbauen_hindernisse_horizontal(int anz_linien,
     // Zufällige horizontale Hindernisse einzeichnen
     for (int linien_nr=1; linien_nr<=anz_linien; linien_nr=linien_nr+1)
     {
-        int startx = 1 + rand() % (BREITE-2-(linien_laenge-1));
-        int starty = 1 + rand() % (HOEHE-2);
+        int startx = zufallszahl(1, BREITE-2-(linien_laenge-1));
+        int starty = zufallszahl(1, HOEHE-2);
         for (int linien_stueck=0;
              linien_stueck<linien_laenge;
              linien_stueck=linien_stueck+1)
@@ -198,8 +101,8 @@ void spielfeld_aufbauen_futter(int anz_futterstuecke)
 {
     for (int stueck_nr=0; stueck_nr<anz_futterstuecke; stueck_nr=stueck_nr+1)
     {
-         int x = 1 + rand() % (BREITE-2);
-         int y = 1 + rand() % (HOEHE-2);
+         int x = zufallszahl(1, BREITE-2);
+         int y = zufallszahl(1, HOEHE-2);
          spielfeld[y][x] = ITEM_FUTTER;
     }
 }
@@ -265,13 +168,13 @@ void spielfeld_zeichnen()
 
 
 void aendere_schlangen_laufrichtung(char taste)
-{
+{    
     switch (taste)
     {
-        case 'w' : dy=-1; dx=0;  break;
-        case 's' : dy=+1; dx=0;  break;
-        case 'a' : dy=0;  dx=-1; break;
-        case 'd' : dy=0;  dx=+1; break;
+        case 65 : dy=-1; dx=0;  break; // oben
+        case 66 : dy=+1; dx=0;  break; // unten
+        case 68 : dy=0;  dx=-1; break; // links
+        case 67 : dy=0;  dx=+1; break; // rechts
     }
 }
 
@@ -289,6 +192,13 @@ int main()
     // Lasse die Schlange in der Spielfeldmitte starten
     sy[0] = HOEHE/2;
     sx[0] = BREITE/2;
+    for (int i=1; i<sl; i=i+1)
+    {
+        // Setze die nächste Position für das
+        // nächste Schwanzteil der Schlange
+        sx[i] = sx[i-1] - 1;
+        sy[i] = sy[i-1];
+    }
 
     spielfeld_aufbauen();
     spielfeld[sy[0]][sx[0]] = ITEM_SCHLANGE_KOPF;
@@ -315,7 +225,13 @@ int main()
         int new_sy = sy[0] + dy;
         
         // Schlange in Wand gelaufen?
-        if (spielfeld[new_sy][new_sx] == ITEM_WAND)
+        // oder
+        // Schlange in den eigenen Schwanz gelaufen?
+        // @oooo (Länge: 5)
+        // KSSSS
+        if ( (spielfeld[new_sy][new_sx] == ITEM_WAND) ||
+             (spielfeld[new_sy][new_sx] == ITEM_SCHLANGE_SCHWANZ)
+            )
         {
             // Schlangenkopf läuft in Wand! Game Over!
             game_over = 1;
@@ -323,9 +239,7 @@ int main()
 
         // Schlange in Futterstückchen gelaufen?
         if (spielfeld[new_sy][new_sx] == ITEM_FUTTER)
-        {
-            // Poor man's debugging:
-            printf("Jetzt passiert gleich was Schlimmes!\n");
+        {            
             // Rücke die Schlangenkörperteile im Array
             // eine Position nach hinten
             for (int i=sl; i>=1; i=i-1)
@@ -334,8 +248,7 @@ int main()
                 sy[i] = sy[i-1];
             }            
             // Berechne neue Schlangenlänge
-            sl=sl+1;
-            printf("Kommen wir noch hierhin?\n");
+            sl=sl+1;         
         }
 
         // Rücke Körperteile der Schlange nach
@@ -352,7 +265,7 @@ int main()
         // in das Spielfeld
         for (int i=0; i<sl; i=i+1)
         {
-            char zeichen = ITEM_SCHLANGE_KOERPER;
+            char zeichen = ITEM_SCHLANGE_SCHWANZ;
             if (i==0)
                 zeichen = ITEM_SCHLANGE_KOPF;
             spielfeld[sy[i]][sx[i]] = zeichen;
@@ -364,13 +277,30 @@ int main()
             // Ja!
             //gotoxy(0, HOEHE+1);
             taste = getchar();
-
-            // Wenn der Benutzer die ESC-Taste drückt,
-            // springen wir aus der Spielablaufschleife
-            if (taste == 27)
-                break;            
             
-            aendere_schlangen_laufrichtung(taste);            
+            // Ist es eine Sondertaste?
+            if (taste == 27)            
+            {
+                // Ja!
+
+                // Ist sonst nichts mehr im Tastaturpuffer?
+                if (kbhit()==0)                
+                    break;
+                else
+                {
+                    // Da ist noch was im Tastaturpuffer,
+                    // es könnte eine Cursortaste sein!
+                    char taste2 = getchar();                    
+
+                    // Wurde die Cursor-Taste gedrückt?
+                    if (taste2==91)
+                    {
+                        // Ja! Eine der Cursor-Tasten wurde gedrückt!
+                        char taste3 = getchar();
+                        aendere_schlangen_laufrichtung(taste3);
+                    }
+                }
+            }
         }
               
         spielfeld_zeichnen();

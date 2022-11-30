@@ -1,6 +1,7 @@
-#include <stdio.h> // printf()
-#include <stdlib.h> // rand()
-#include <time.h>   // time()
+#include <stdio.h>   // printf()
+#include <stdlib.h>  // rand()
+#include <time.h>    // time()
+#include <string.h>  // strcat()
 
 
 #include "snake_hilfsfunktionen.h"
@@ -139,26 +140,52 @@ void spielfeld_zeichnen()
 {    
     update += 1;
 
-    char ganzes_spielfeld_als_str[HOEHE*(BREITE+1)];
+    //char ganzes_spielfeld_als_str[HOEHE*(BREITE+1)];
+    char ganzes_spielfeld_als_str[100000];
+    ganzes_spielfeld_als_str[0] = '\0';
 
-    // Für alle Zeilen ...
-    int i = 0;
+    // Für alle Zeilen ...    
     for (int y=0; y<HOEHE; y=y+1)
     { 
         // Für alle Spalten ...
         for (int x=0; x<BREITE; x=x+1)
-        {
-            //printf("%c", spielfeld[y][x]);
-            ganzes_spielfeld_als_str[i] = spielfeld[y][x];
-            i = i + 1;
+        {            
+            // Setze Item-spezifische Farbe
+            switch (spielfeld[y][x])
+            {
+                case ITEM_WAND :
+                    strcat(ganzes_spielfeld_als_str, COLOR_WAND);
+                    break;
+
+                case ITEM_LEER:
+                    strcat(ganzes_spielfeld_als_str, COLOR_LEER);
+                    break;
+
+                case ITEM_FUTTER:
+                    strcat(ganzes_spielfeld_als_str, COLOR_FUTTER);
+                    break;
+
+                case ITEM_SCHLANGE_KOPF:
+                    strcat(ganzes_spielfeld_als_str, COLOR_SCHLANGE_KOPF);
+                    break;
+
+                case ITEM_SCHLANGE_SCHWANZ:
+                    strcat(ganzes_spielfeld_als_str, COLOR_SCHLANGE_SCHWANZ);
+                    break;
+            }
+
+            char miniString[2];
+            miniString[0] = spielfeld[y][x];
+            miniString[1] = '\0';
+            strcat(ganzes_spielfeld_als_str, miniString);
+            strcat(ganzes_spielfeld_als_str, "\x1B[0;0m" ); // Reset to old foreground and background color
         }
-        //printf("\n");
-        ganzes_spielfeld_als_str[i] = '\n';
-        i = i + 1;
+        strcat(ganzes_spielfeld_als_str, "\n");        
     }
-    
+        
     gotoxy(0,0);
     printf("%s\n", ganzes_spielfeld_als_str);
+    printf("Länge des Spielfeld-Strings: %ld\n", strlen(ganzes_spielfeld_als_str) );
     printf("Update: %lld\n", update);
     printf("Schlangen-Position: (%d,%d) \n", sx[0], sy[0]);
     printf("Schlangen-Länge: %d\n", sl);

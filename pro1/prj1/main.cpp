@@ -1,23 +1,26 @@
 #include <stdlib.h>
-
+#include <string>
 #include <iostream>
+#include <vector>
 
 class warrior
 {
     public:
 
     // Konstruktor der Klasse warrior
-    warrior()
+    warrior(std::string name)
     {
-        x = 0;
-        y = 0;
-        energy = 1.0;
+        this->x = 0;
+        this->y = 0;
+        this->energy = 1.0;
+        this->name = name;
     }
 
     // Eine weitere Methode
     void zeige_infos()
     {
-        std::cout << "Ich bin an (" << x << "," << y << ") und habe Restenergie "
+        std::cout << name << " ist an (" << x << "," << y << ") und hat"
+                  << " Restenergie "
                   << energy << "\n"; 
     }
 
@@ -42,26 +45,66 @@ class warrior
         energy += stunden*0.1;
     }
 
-    private:
+    virtual void kaempfe() = 0;
+
+
+    protected:
     
     int x;
     int y;
     float energy;
+    std::string name;
 };
+
+class wizard : public warrior
+{
+    public:
+
+    wizard(std::string name) : warrior(name)
+    {
+
+    }
+
+    void kaempfe()
+    {
+        std::cout << name << " zaubert\n";
+    }
+};
+
+class archer : public warrior
+{
+    public:
+
+    archer(std::string name) : warrior(name)
+    {
+
+    }
+
+    void kaempfe()
+    {
+        std::cout << name << " schießt Pfeile\n";
+    }
+};
+
+
 
 int main()
 {
-    warrior* w1 = new warrior();
+    //warrior* r1 = new warrior("Aragon");
 
-    w1->zeige_infos();
+    wizard* w1 = new wizard("Dumbeldore");
+    archer* a1 = new archer("Robin Hood");
 
-    for (int i=1; i<=15; i++)
+    std::vector<warrior*> alle_einheiten;
+     alle_einheiten.push_back( w1 );
+    alle_einheiten.push_back( a1 );
+
+    for (int i=0; i<5; i++)
     {
-        w1->laufe_zur_stelle(i,i);
-        if (rand() % 3 == 0)
-            w1->mache_eine_pause(1.0);
-        w1->zeige_infos();
+        for (int einheit_nr=0; einheit_nr<alle_einheiten.size(); einheit_nr++)
+        {
+            alle_einheiten[einheit_nr]->kaempfe();
+        }
     }
-
  
 }

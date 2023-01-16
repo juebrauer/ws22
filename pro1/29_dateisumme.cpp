@@ -17,14 +17,17 @@ int main()
 
     string token;
     int sum = 0;
-    while (true)
+    while (inFile >> token)
     {
-        inFile >> token;
-        cout << token << " ";
-
-        
-
-        sum = sum + zahl;
+        try
+        {
+            int zahl = stoi(token);
+            sum += zahl;
+        }
+        catch (...)
+        {
+             cout << "Fehler! Ungültige Zahl: " << token << "\n";
+        }
     }
 
     cout << "Summe ist " << sum << "\n";
